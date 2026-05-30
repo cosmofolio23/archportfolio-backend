@@ -6,8 +6,14 @@ from datetime import datetime
 import uuid
 from config import settings
 
-# Supabase Client
-supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+# Supabase Client - try to initialize, but don't fail if credentials are missing
+supabase = None
+try:
+    if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+except Exception as e:
+    print(f"⚠️ Warning: Supabase initialization failed: {e}")
+    print("⚠️ Backend started but database operations will fail until Supabase is configured")
 
 Base = declarative_base()
 
