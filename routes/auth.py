@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi.security import HTTPBearer
+from starlette.requests import Request
 from datetime import datetime, timedelta
 import jwt
 from config import settings
@@ -21,7 +22,9 @@ def create_access_token(user_id: str, email: str):
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-def verify_token(credentials: HTTPAuthCredentials = Depends(security)):
+def verify_token(request: Request):
+    credentials = request.headers.get("Authorization", "")
+    if not credentials or not credentials.startswith("Bearer "):
     """Verify JWT token"""
     token = credentials.credentials
     try:
