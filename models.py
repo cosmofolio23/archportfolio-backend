@@ -558,3 +558,72 @@ class LayoutRecommendationResponse(BaseModel):
     layout_id: str
     confidence: float
     reason: str
+
+# ==================== Asset Models (Phase 2) ====================
+
+class AssetUploadRequest(BaseModel):
+    asset_type: AssetTypeEnum
+    file_name: str
+    tags: Optional[List[str]] = None
+    description: Optional[str] = None
+
+class AssetMetadataRequest(BaseModel):
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    asset_type: Optional[AssetTypeEnum] = None
+
+class AssetResponse(BaseModel):
+    id: str
+    project_id: Optional[str]
+    portfolio_id: str
+    file_name: str
+    file_size: int
+    file_type: str
+    mime_type: str
+    asset_type: str
+    storage_path: str
+    thumb_path: Optional[str]
+    preview_url: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+    description: Optional[str]
+    tags: List[str]
+    created_at: datetime
+    updated_at: datetime
+    version: int
+
+    model_config = {"from_attributes": True, "extra": "ignore"}
+
+class AssetListResponse(BaseModel):
+    items: List[AssetResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+class AssetVersionResponse(BaseModel):
+    id: str
+    asset_id: str
+    version_number: int
+    file_path: str
+    file_size: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True, "extra": "ignore"}
+
+class AssetVersionListResponse(BaseModel):
+    asset_id: str
+    versions: List[AssetVersionResponse]
+    total_versions: int
+
+class AssetTagResponse(BaseModel):
+    id: str
+    asset_id: str
+    tag_name: str
+    created_at: datetime
+
+class BulkAssetUploadResponse(BaseModel):
+    uploaded: int
+    failed: int
+    total: int
+    errors: Optional[List[Dict[str, Any]]]
