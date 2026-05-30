@@ -16,10 +16,78 @@ sys.path.insert(0, os.path.dirname(__file__))
 # Import routes
 from routes import auth, projects, assets, portfolios, layouts
 
+def init_database():
+    """Create all tables on startup if they don't exist"""
+    from database import supabase
+    if not supabase:
+        print("⚠️ Supabase not initialized, skipping table creation")
+        return
+
+    tables_sql = [
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            email TEXT UNIQUE NOT NULL,
+            name TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            project_type TEXT DEFAULT 'residential',
+            status TEXT DEFAULT 'draft',
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS assets (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            asset_type TEXT,
+            file_url TEXT NOT NULL,
+            file_name TEXT NOT NULL,
+            file_size INTEGER,
+            upload_order INTEGER DEFAULT 0,
+            analysis JSONB,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS portfolios (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            layout_id TEXT,
+            style_pack TEXT,
+            page_structure JSONB,
+            variant_number INTEGER DEFAULT 1,
+            generated_html TEXT,
+            pdf_url TEXT,
+            status TEXT DEFAULT 'ready',
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        """
+    ]
+
+    for sql in tables_sql:
+        try:
+            supabase.rpc("exec_sql", {"sql": sql.strip()}).execute()
+        except Exception as e:
+            print(f"Table creation note: {e}")
+
+    print("✅ Database tables initialized")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("Starting ArchPortfolio Generator API...")
+    print("Starting CosmoFolio API...")
+    init_database()
     yield
     # Shutdown
     print("Shutting down...")
