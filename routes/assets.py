@@ -10,28 +10,44 @@ import os
 
 router = APIRouter()
 
-# ==================== File Upload ====================
+# ==================== File Upload to Firebase Storage ====================
 
 async def save_uploaded_file(project_id: str, asset_type: str, file: UploadFile) -> tuple:
-    """Save uploaded file to storage (Firebase or local)"""
+    """Upload file to Firebase Storage and return public URL"""
     try:
         file_id = str(uuid.uuid4())
         file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-
-        # For now, save locally. Later integrate with Firebase/Cloudinary
-        upload_dir = f"uploads/{project_id}/{asset_type}"
-        os.makedirs(upload_dir, exist_ok=True)
-
-        file_path = f"{upload_dir}/{file_id}.{file_extension}"
         file_content = await file.read()
+        file_size = len(file_content)
 
-        async with aiofiles.open(file_path, "wb") as f:
-            await f.write(file_content)
+        # Try Firebase Storage upload
+        try:
+            from firebase_admin import storage as fb_storage
+            import firebase_admin
 
-        # In production, upload to Firebase/Cloudinary and return URL
-        file_url = f"/{file_path}"  # Local path for now
+            bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "cosmo-folio-62c7f.firebasestorage.app")
+            bucket = fb_storage.bucket(bucket_name)
+            blob_path = f"assets/{project_id}/{asset_type}/{file_id}.{file_extension}"
+            blob = bucket.blob(blob_path)
 
-        return file_url, len(file_content)
+            content_type = file.content_type or "image/jpeg"
+            blob.upload_from_string(file_content, content_type=content_type)
+            blob.make_public()
+            file_url = blob.public_url
+            print(f"✅ Uploaded to Firebase Storage: {file_url}")
+
+        except Exception as fb_error:
+            print(f"⚠️ Firebase Storage failed ({fb_error}), using local fallback")
+            # Fallback: save locally
+            upload_dir = f"/tmp/uploads/{project_id}/{asset_type}"
+            os.makedirs(upload_dir, exist_ok=True)
+            file_path = f"{upload_dir}/{file_id}.{file_extension}"
+            async with aiofiles.open(file_path, "wb") as f:
+                await f.write(file_content)
+            file_url = f"/tmp/{file_path}"
+
+        return file_url, file_size
+
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"File upload failed: {str(e)}")
 
