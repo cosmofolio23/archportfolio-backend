@@ -205,12 +205,19 @@ async def generate_portfolio(
 async def list_portfolios(project_id: str, current_user: dict = Depends(get_current_user)):
     """List all portfolios for a project"""
     try:
+        # Verify user owns the project
+        project = supabase.table("projects").select("*").eq("id", project_id).eq("user_id", current_user["user_id"]).execute()
+        if not project.data:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You don't own this project")
+
         response = supabase.table("portfolios").select("*").eq("project_id", project_id).order("created_at", desc=True).execute()
         return response.data
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.get("/{portfolio_id}")
+@router.get("/view/{portfolio_id}")
 async def get_portfolio(portfolio_id: str, current_user: dict = Depends(get_current_user)):
     """Get portfolio details"""
     try:
