@@ -5,48 +5,34 @@ from models import AssetResponse, AssetListResponse, AssetTypeEnum
 from routes.deps import get_current_user
 from database import supabase
 import uuid
-import aiofiles
-import os
 
 router = APIRouter()
 
 # ==================== File Upload to Firebase Storage ====================
 
 async def save_uploaded_file(project_id: str, asset_type: str, file: UploadFile) -> tuple:
-    """Upload file to Firebase Storage and return public URL"""
+    """Upload file to Supabase Storage and return public URL"""
     try:
         file_id = str(uuid.uuid4())
         file_extension = file.filename.split(".")[-1] if "." in file.filename else "jpg"
         file_content = await file.read()
         file_size = len(file_content)
 
-        # Try Firebase Storage upload
-        try:
-            from firebase_admin import storage as fb_storage
-            import firebase_admin
+        # Upload to Supabase Storage
+        storage_path = f"{project_id}/{asset_type}/{file_id}.{file_extension}"
+        content_type = file.content_type or "image/jpeg"
 
-            bucket_name = os.getenv("FIREBASE_STORAGE_BUCKET", "cosmo-folio-62c7f.firebasestorage.app")
-            bucket = fb_storage.bucket(bucket_name)
-            blob_path = f"assets/{project_id}/{asset_type}/{file_id}.{file_extension}"
-            blob = bucket.blob(blob_path)
+        response = supabase.storage.from_("assets").upload(
+            path=storage_path,
+            file=file_content,
+            file_options={"content-type": content_type}
+        )
 
-            content_type = file.content_type or "image/jpeg"
-            blob.upload_from_string(file_content, content_type=content_type)
-            blob.make_public()
-            file_url = blob.public_url
-            print(f"✅ Uploaded to Firebase Storage: {file_url}")
+        # Get public URL
+        public_url = supabase.storage.from_("assets").get_public_url(storage_path)
+        print(f"✅ Uploaded to Supabase Storage: {public_url}")
 
-        except Exception as fb_error:
-            print(f"⚠️ Firebase Storage failed ({fb_error}), using local fallback")
-            # Fallback: save locally
-            upload_dir = f"/tmp/uploads/{project_id}/{asset_type}"
-            os.makedirs(upload_dir, exist_ok=True)
-            file_path = f"{upload_dir}/{file_id}.{file_extension}"
-            async with aiofiles.open(file_path, "wb") as f:
-                await f.write(file_content)
-            file_url = f"/tmp/{file_path}"
-
-        return file_url, file_size
+        return public_url, file_size
 
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"File upload failed: {str(e)}")
