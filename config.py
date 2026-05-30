@@ -3,11 +3,11 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Supabase
-    SUPABASE_URL: str
-    SUPABASE_KEY: str
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_KEY: Optional[str] = None
 
     # JWT
-    SECRET_KEY: str
+    SECRET_KEY: str = "default-secret-key-change-this"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -26,10 +26,11 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8000",
         "https://localhost:3000",
+        "https://*.vercel.app"
     ]
 
     # App
-    DEBUG: bool = True
+    DEBUG: bool = False
     APP_NAME: str = "ArchPortfolio Generator"
 
     class Config:
