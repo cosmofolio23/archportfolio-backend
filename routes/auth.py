@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
 from datetime import datetime, timedelta
 import jwt
 from config import settings
@@ -7,7 +6,6 @@ from models import SignUpRequest, LoginRequest, AuthResponse, UserResponse
 from database import supabase
 
 router = APIRouter()
-security = HTTPBearer()
 
 # ==================== JWT Utilities ====================
 
@@ -21,9 +19,8 @@ def create_access_token(user_id: str, email: str):
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-def verify_token(credentials: HTTPAuthCredentials = Depends(security)):
+def verify_token(token: str):
     """Verify JWT token"""
-    token = credentials.credentials
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id = payload.get("sub")
@@ -36,13 +33,19 @@ def verify_token(credentials: HTTPAuthCredentials = Depends(security)):
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
+def get_current_user(authorization: str = None):
+    """Extract token from Authorization header"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+    token = authorization[7:]
+    return verify_token(token)
+
 # ==================== Routes ====================
 
 @router.post("/signup", response_model=AuthResponse)
 async def signup(req: SignUpRequest):
     """Register new user"""
     try:
-        # Use Supabase Auth
         response = supabase.auth.sign_up({
             "email": req.email,
             "password": req.password,
@@ -51,7 +54,6 @@ async def signup(req: SignUpRequest):
         if response.user:
             user_id = response.user.id
 
-            # Store additional user info
             supabase.table("users").insert({
                 "id": user_id,
                 "email": req.email,
@@ -88,7 +90,6 @@ async def login(req: LoginRequest):
         if response.user:
             user_id = response.user.id
 
-            # Get user info
             user_data = supabase.table("users").select("*").eq("id", user_id).execute()
             user = user_data.data[0] if user_data.data else {}
 
@@ -109,10 +110,10 @@ async def login(req: LoginRequest):
         )
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(current_user: dict = Depends(verify_token)):
+async def get_current_user_info(authorization: str = Depends(get_current_user)):
     """Get current user info"""
     try:
-        user_data = supabase.table("users").select("*").eq("id", current_user["user_id"]).execute()
+        user_data = supabase.table("users").select("*").eq("id", authorization["user_id"]).execute()
         if user_data.data:
             user = user_data.data[0]
             return UserResponse(
@@ -125,7 +126,7 @@ async def get_current_user(current_user: dict = Depends(verify_token)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
 @router.post("/logout")
-async def logout(current_user: dict = Depends(verify_token)):
+async def logout(authorization: str = Depends(get_current_user)):
     """Logout user"""
     try:
         supabase.auth.sign_out()
