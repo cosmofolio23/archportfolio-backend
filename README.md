@@ -1,3 +1,11 @@
+---
+title: ArchPortfolio Generator
+emoji: 🏗️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+---
+
 # ArchPortfolio Generator - Backend
 
 FastAPI-based backend for AI-powered architecture portfolio generator.
