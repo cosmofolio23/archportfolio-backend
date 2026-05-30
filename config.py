@@ -4,7 +4,8 @@ from typing import Optional
 class Settings(BaseSettings):
     # Supabase
     SUPABASE_URL: Optional[str] = None
-    SUPABASE_KEY: Optional[str] = None
+    SUPABASE_ANON_KEY: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
 
     # JWT
     SECRET_KEY: str = "change-me-to-random-secret-key"
