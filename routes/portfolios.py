@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from typing import List
 from datetime import datetime
 from models import GeneratePortfolioRequest, PortfolioResponse
-from routes.auth import verify_token
+from routes.deps import get_current_user
 from database import supabase
 import uuid
 import json
@@ -124,7 +124,7 @@ async def generate_portfolio(
     project_id: str,
     req: GeneratePortfolioRequest,
     background_tasks: BackgroundTasks,
-    current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Generate one or more portfolio variants"""
     try:
@@ -200,7 +200,7 @@ async def generate_portfolio(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{project_id}/list", response_model=List[PortfolioResponse])
-async def list_portfolios(project_id: str, current_user: dict = Depends(verify_token)):
+async def list_portfolios(project_id: str, current_user: dict = Depends(get_current_user)):
     """List all portfolios for a project"""
     try:
         # Verify project ownership
@@ -216,7 +216,7 @@ async def list_portfolios(project_id: str, current_user: dict = Depends(verify_t
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{portfolio_id}", response_model=PortfolioResponse)
-async def get_portfolio(portfolio_id: str, current_user: dict = Depends(verify_token)):
+async def get_portfolio(portfolio_id: str, current_user: dict = Depends(get_current_user)):
     """Get portfolio details"""
     try:
         response = supabase.table("portfolios").select("*").eq("id", portfolio_id).execute()
@@ -233,7 +233,7 @@ async def get_portfolio(portfolio_id: str, current_user: dict = Depends(verify_t
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.delete("/{portfolio_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_portfolio(portfolio_id: str, current_user: dict = Depends(verify_token)):
+async def delete_portfolio(portfolio_id: str, current_user: dict = Depends(get_current_user)):
     """Delete portfolio"""
     try:
         response = supabase.table("portfolios").select("*").eq("id", portfolio_id).execute()
@@ -252,7 +252,7 @@ async def delete_portfolio(portfolio_id: str, current_user: dict = Depends(verif
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{portfolio_id}/preview")
-async def get_portfolio_preview(portfolio_id: str, current_user: dict = Depends(verify_token)):
+async def get_portfolio_preview(portfolio_id: str, current_user: dict = Depends(get_current_user)):
     """Get portfolio HTML preview"""
     try:
         response = supabase.table("portfolios").select("*").eq("id", portfolio_id).execute()

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from models import LayoutResponse, LayoutRecommendation
-from routes.auth import verify_token
+from routes.deps import get_current_user
 import json
 
 router = APIRouter()
@@ -256,7 +256,7 @@ async def recommend_layout(
     plan_count: int,
     section_count: int,
     diagram_count: int,
-    current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user)
 ) -> LayoutRecommendation:
     """AI-powered layout recommendation based on asset counts"""
     total_assets = render_count + plan_count + section_count + diagram_count

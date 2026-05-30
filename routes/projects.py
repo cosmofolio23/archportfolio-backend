@@ -1,17 +1,29 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Header
 from typing import List
 from datetime import datetime
+import uuid
 from models import ProjectCreate, ProjectUpdate, ProjectResponse
-from routes.auth import verify_token
+from firebase_config import verify_firebase_token
 from database import supabase
 
 router = APIRouter()
 
+def get_current_user(authorization: str = None):
+    """Get current user from Firebase token"""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+    token = authorization[7:]
+    try:
+        decoded = verify_firebase_token(token)
+        return {"user_id": decoded.get("uid"), "email": decoded.get("email")}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
 # ==================== Routes ====================
 
 @router.get("", response_model=List[ProjectResponse])
-async def list_projects(current_user: dict = Depends(verify_token)):
-    """List all projects for current user"""
+async def list_projects(authorization: str = Header(None)):
+    current_user = get_current_user(authorization)
     try:
         response = supabase.table("projects").select("*").eq("user_id", current_user["user_id"]).execute()
         return response.data
@@ -19,10 +31,11 @@ async def list_projects(current_user: dict = Depends(verify_token)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.post("", response_model=ProjectResponse)
-async def create_project(req: ProjectCreate, current_user: dict = Depends(verify_token)):
-    """Create new project"""
+async def create_project(req: ProjectCreate, authorization: str = Header(None)):
+    current_user = get_current_user(authorization)
     try:
         project_data = {
+            "id": str(uuid.uuid4()),
             "user_id": current_user["user_id"],
             "title": req.title,
             "description": req.description,
@@ -37,8 +50,8 @@ async def create_project(req: ProjectCreate, current_user: dict = Depends(verify
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{project_id}", response_model=ProjectResponse)
-async def get_project(project_id: str, current_user: dict = Depends(verify_token)):
-    """Get project details"""
+async def get_project(project_id: str, authorization: str = Header(None)):
+    current_user = get_current_user(authorization)
     try:
         response = supabase.table("projects").select("*").eq("id", project_id).eq("user_id", current_user["user_id"]).execute()
         if response.data:
@@ -50,31 +63,23 @@ async def get_project(project_id: str, current_user: dict = Depends(verify_token
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.put("/{project_id}", response_model=ProjectResponse)
-async def update_project(project_id: str, req: ProjectUpdate, current_user: dict = Depends(verify_token)):
-    """Update project"""
+async def update_project(project_id: str, req: ProjectUpdate, authorization: str = Header(None)):
+    current_user = get_current_user(authorization)
     try:
         update_data = req.model_dump(exclude_unset=True)
         update_data["updated_at"] = datetime.utcnow().isoformat()
-        if "project_type" in update_data:
+        if "project_type" in update_data and update_data["project_type"]:
             update_data["project_type"] = update_data["project_type"].value
-
         response = supabase.table("projects").update(update_data).eq("id", project_id).eq("user_id", current_user["user_id"]).execute()
-        if response.data:
-            return response.data[0]
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except HTTPException:
-        raise
+        return response.data[0] if response.data else None
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(project_id: str, current_user: dict = Depends(verify_token)):
-    """Delete project"""
+@router.delete("/{project_id}")
+async def delete_project(project_id: str, authorization: str = Header(None)):
+    current_user = get_current_user(authorization)
     try:
-        response = supabase.table("projects").delete().eq("id", project_id).eq("user_id", current_user["user_id"]).execute()
-        if not response.data:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    except HTTPException:
-        raise
+        supabase.table("projects").delete().eq("id", project_id).eq("user_id", current_user["user_id"]).execute()
+        return {"message": "Project deleted"}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Header
 from typing import List
 from datetime import datetime
 from models import AssetResponse, AssetListResponse, AssetTypeEnum
-from routes.auth import verify_token
+from routes.deps import get_current_user
 from database import supabase
 import uuid
 import aiofiles
@@ -42,7 +42,7 @@ async def upload_assets(
     project_id: str,
     asset_type: AssetTypeEnum,
     files: List[UploadFile] = File(...),
-    current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Upload multiple assets for a project"""
     try:
@@ -81,7 +81,7 @@ async def upload_assets(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{project_id}/list", response_model=AssetListResponse)
-async def list_assets(project_id: str, current_user: dict = Depends(verify_token)):
+async def list_assets(project_id: str, current_user: dict = Depends(get_current_user)):
     """List all assets for a project organized by type"""
     try:
         # Verify project ownership
@@ -112,7 +112,7 @@ async def list_assets(project_id: str, current_user: dict = Depends(verify_token
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.delete("/{project_id}/assets/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_asset(project_id: str, asset_id: str, current_user: dict = Depends(verify_token)):
+async def delete_asset(project_id: str, asset_id: str, current_user: dict = Depends(get_current_user)):
     """Delete a specific asset"""
     try:
         # Verify project ownership
@@ -132,7 +132,7 @@ async def delete_asset(project_id: str, asset_id: str, current_user: dict = Depe
 async def reorder_assets(
     project_id: str,
     asset_order: List[dict],  # [{"asset_id": "...", "order": 0}, ...]
-    current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user)
 ):
     """Reorder assets"""
     try:
@@ -151,7 +151,7 @@ async def reorder_assets(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/{project_id}/analysis")
-async def analyze_assets(project_id: str, current_user: dict = Depends(verify_token)):
+async def analyze_assets(project_id: str, current_user: dict = Depends(get_current_user)):
     """Analyze project assets for AI layout recommendation"""
     try:
         # Verify project ownership
