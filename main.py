@@ -1,9 +1,14 @@
+import os
+import sys
+from dotenv import load_dotenv
+
+# Load environment variables BEFORE importing config
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from config import settings
-import os
-import sys
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(__file__))
