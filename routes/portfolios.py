@@ -165,7 +165,7 @@ async def generate_portfolio(
                 "id": str(uuid.uuid4()),
                 "project_id": project_id,
                 "layout_id": req.layout_id,
-                "style_pack": req.style_pack if isinstance(req.style_pack, str) else req.style_pack.value,
+                "style_pack": req.style_pack,
                 "status": "ready",
                 "variant_number": start_variant + variant_num,
                 "created_at": datetime.utcnow().isoformat()
@@ -175,7 +175,7 @@ async def generate_portfolio(
             page_structure = generate_portfolio_structure(
                 project_id,
                 req.layout_id,
-                req.style_pack.value,
+                req.style_pack,
                 assets_by_type
             )
 
