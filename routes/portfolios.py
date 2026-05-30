@@ -214,17 +214,23 @@ async def list_portfolios(project_id: str, current_user: dict = Depends(get_curr
 async def get_portfolio(portfolio_id: str, current_user: dict = Depends(get_current_user)):
     """Get portfolio details"""
     try:
+        print(f"[DEBUG] Getting portfolio {portfolio_id} for user {current_user.get('user_id')}")
         response = supabase.table("portfolios").select("*").eq("id", portfolio_id).execute()
+        print(f"[DEBUG] Portfolio query result: {response.data}")
         if response.data:
             portfolio = response.data[0]
+            print(f"[DEBUG] Found portfolio, project_id: {portfolio.get('project_id')}")
             # Verify user ownership through project
             project = supabase.table("projects").select("*").eq("id", portfolio["project_id"]).eq("user_id", current_user["user_id"]).execute()
+            print(f"[DEBUG] Project ownership check: {project.data}")
             if project.data:
                 return portfolio
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        print(f"[DEBUG] Portfolio not found or user doesn't own it")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Portfolio not found or access denied")
     except HTTPException:
         raise
     except Exception as e:
+        print(f"[DEBUG] Error getting portfolio: {str(e)}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.delete("/{portfolio_id}", status_code=status.HTTP_204_NO_CONTENT)
