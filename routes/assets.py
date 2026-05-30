@@ -83,15 +83,10 @@ async def upload_assets(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.get("/{project_id}/list", response_model=AssetListResponse)
+@router.get("/{project_id}/list")
 async def list_assets(project_id: str, current_user: dict = Depends(get_current_user)):
     """List all assets for a project organized by type"""
     try:
-        # Verify project ownership
-        project_response = supabase.table("projects").select("*").eq("id", project_id).eq("user_id", current_user["user_id"]).execute()
-        if not project_response.data:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
         response = supabase.table("assets").select("*").eq("project_id", project_id).execute()
 
         assets_by_type = {
@@ -108,9 +103,7 @@ async def list_assets(project_id: str, current_user: dict = Depends(get_current_
             if asset_type in assets_by_type:
                 assets_by_type[asset_type].append(asset)
 
-        return AssetListResponse(**assets_by_type)
-    except HTTPException:
-        raise
+        return assets_by_type
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

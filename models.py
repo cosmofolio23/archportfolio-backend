@@ -100,12 +100,14 @@ class AssetResponse(BaseModel):
     asset_type: str
     file_url: str
     file_name: str
-    file_size: int
-    width: Optional[int]
-    height: Optional[int]
-    analysis: Optional[Dict[str, Any]]
-    upload_order: int
-    created_at: datetime
+    file_size: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    analysis: Optional[Dict[str, Any]] = None
+    upload_order: Optional[int] = 0
+    created_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 class AssetListResponse(BaseModel):
     render: List[AssetResponse] = []
