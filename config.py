@@ -26,7 +26,10 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8000",
         "https://localhost:3000",
+        "https://frontend-fawn-kappa-36.vercel.app",
+        "https://frontend-amobcnb0o-cosmo-atelier-s-projects.vercel.app",
         "https://*.vercel.app",
+        "http://localhost",
         "*"
     ]
 
