@@ -8,12 +8,20 @@ from config import settings
 
 # Supabase Client - try to initialize, but don't fail if credentials are missing
 supabase = None
+print(f"📋 Config check:")
+print(f"  SUPABASE_URL: {settings.SUPABASE_URL[:20] if settings.SUPABASE_URL else 'NOT SET'}...")
+print(f"  SUPABASE_KEY: {settings.SUPABASE_KEY[:20] if settings.SUPABASE_KEY else 'NOT SET'}...")
+
 try:
     if settings.SUPABASE_URL and settings.SUPABASE_KEY:
         supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+        print("✅ Supabase initialized successfully")
+    else:
+        print("❌ SUPABASE_URL or SUPABASE_KEY not configured")
 except Exception as e:
-    print(f"⚠️ Warning: Supabase initialization failed: {e}")
-    print("⚠️ Backend started but database operations will fail until Supabase is configured")
+    print(f"❌ Supabase initialization failed: {type(e).__name__}: {e}")
+    import traceback
+    traceback.print_exc()
 
 Base = declarative_base()
 
