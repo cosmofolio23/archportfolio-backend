@@ -57,6 +57,7 @@ async def upload_assets(
             file_url, file_size = await save_uploaded_file(project_id, asset_type.value, file)
 
             asset_data = {
+                "id": str(uuid.uuid4()),
                 "project_id": project_id,
                 "asset_type": asset_type.value,
                 "file_url": file_url,
