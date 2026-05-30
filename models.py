@@ -192,11 +192,12 @@ class PortfolioPage(BaseModel):
     notes: Optional[str] = None
 
 class GeneratePortfolioRequest(BaseModel):
-    layout_id: str
-    style_pack: StylePackEnum
-    grid_mode: GridModeEnum = GridModeEnum.strict
+    layout_id: str = "hero_render"
+    style_pack: str = "minimal_white"
+    grid_mode: str = "strict"
     font_pair: Optional[str] = None
     variant_count: int = Field(1, ge=1, le=10)
+    variant_number: Optional[int] = None
 
 class PortfolioResponse(BaseModel):
     id: str

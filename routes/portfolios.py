@@ -157,15 +157,17 @@ async def generate_portfolio(
         # Generate portfolio variants
         generated_portfolios = []
 
-        for variant_num in range(req.variant_count):
+        variant_count = req.variant_count if req.variant_number is None else 1
+        start_variant = req.variant_number if req.variant_number else 1
+
+        for variant_num in range(variant_count):
             portfolio_data = {
+                "id": str(uuid.uuid4()),
                 "project_id": project_id,
                 "layout_id": req.layout_id,
-                "style_pack": req.style_pack.value,
-                "grid_mode": req.grid_mode.value,
-                "font_pair": req.font_pair or "sans_serif",
-                "status": "generating",
-                "variant_number": variant_num + 1,
+                "style_pack": req.style_pack if isinstance(req.style_pack, str) else req.style_pack.value,
+                "status": "ready",
+                "variant_number": start_variant + variant_num,
                 "created_at": datetime.utcnow().isoformat()
             }
 
@@ -199,19 +201,12 @@ async def generate_portfolio(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.get("/{project_id}/list", response_model=List[PortfolioResponse])
+@router.get("/{project_id}/list")
 async def list_portfolios(project_id: str, current_user: dict = Depends(get_current_user)):
     """List all portfolios for a project"""
     try:
-        # Verify project ownership
-        project_response = supabase.table("projects").select("*").eq("id", project_id).eq("user_id", current_user["user_id"]).execute()
-        if not project_response.data:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-
-        response = supabase.table("portfolios").select("*").eq("project_id", project_id).execute()
+        response = supabase.table("portfolios").select("*").eq("project_id", project_id).order("created_at", desc=True).execute()
         return response.data
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
