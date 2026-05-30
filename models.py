@@ -204,13 +204,15 @@ class PortfolioResponse(BaseModel):
     project_id: str
     layout_id: str
     style_pack: str
-    page_structure: List[PortfolioPage]
-    grid_mode: str
+    page_structure: Optional[Dict[str, Any]] = None
+    grid_mode: Optional[str] = None
     variant_number: int
     status: str
-    pdf_url: Optional[str]
-    web_url: Optional[str]
+    pdf_url: Optional[str] = None
+    web_url: Optional[str] = None
     created_at: datetime
+
+    model_config = {"from_attributes": True, "extra": "ignore"}
 
 # ==================== Export ====================
 
